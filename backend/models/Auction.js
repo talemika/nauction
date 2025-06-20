@@ -24,6 +24,11 @@ const auctionSchema = new mongoose.Schema({
       return this.startingPrice;
     }
   },
+  currency: {
+    type: String,
+    enum: ['NGN', 'USD'],
+    default: 'NGN'
+  },
   media: [{
     url: {
       type: String,

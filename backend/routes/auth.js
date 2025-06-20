@@ -108,6 +108,108 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+// Admin role management routes
+const { requireAdminAuth } = require('../middleware/adminAuth');
+
+// Get all users (admin only)
+router.get('/users', requireAdminAuth, async (req, res) => {
+  try {
+    const users = await User.find({}, '-password').sort({ createdAt: -1 });
+    res.json({
+      success: true,
+      users
+    });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error fetching users' 
+    });
+  }
+});
+
+// Update user role (admin only)
+router.put('/users/:userId/role', requireAdminAuth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { role } = req.body;
+
+    // Validation
+    if (!role || !['user', 'admin'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid role (user or admin) is required'
+      });
+    }
+
+    // Prevent admin from removing their own admin role
+    if (req.user.userId === userId && role === 'user') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot remove admin role from yourself'
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    user.role = role;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: `User role updated to ${role}`,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error updating user role'
+    });
+  }
+});
+
+// Get user profile
+router.get('/profile', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId, '-password');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching profile'
+    });
+  }
+});
+
 module.exports = router;
 module.exports.authenticateToken = authenticateToken;
 

@@ -5,10 +5,10 @@ const authenticateToken = require('./auth').authenticateToken;
 
 const router = express.Router();
 
-// Place a bid (requires authentication)
+// Place a bid
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { auctionId, amount } = req.body;
+    const { auctionId, amount, currency } = req.body;
 
     // Check if auction exists and is active
     const auction = await Auction.findById(auctionId);
@@ -25,10 +25,14 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: 'Cannot bid on your own auction' });
     }
 
+    // Use auction's currency if no currency specified
+    const bidCurrency = currency || auction.currency;
+
     // Check if bid amount is higher than current price
     if (amount <= auction.currentPrice) {
+      const currencySymbol = auction.currency === 'NGN' ? '₦' : '$';
       return res.status(400).json({ 
-        message: `Bid amount must be higher than current price of $${auction.currentPrice}` 
+        message: `Bid amount must be higher than current price of ${currencySymbol}${auction.currentPrice}` 
       });
     }
 
@@ -36,9 +40,9 @@ router.post('/', authenticateToken, async (req, res) => {
     const bid = new Bid({
       auction: auctionId,
       bidder: req.user.userId,
-      amount
+      amount,
+      currency: bidCurrency
     });
-
     await bid.save();
     await bid.populate('bidder', 'username');
 

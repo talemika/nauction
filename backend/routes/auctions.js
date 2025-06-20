@@ -59,7 +59,7 @@ router.get('/:id', async (req, res) => {
 // Create new auction (requires admin authentication)
 router.post('/', requireAdminAuth, async (req, res) => {
   try {
-    const { title, description, startingPrice, media, duration } = req.body;
+    const { title, description, startingPrice, media, duration, currency } = req.body;
 
     // Calculate end time (duration in hours)
     const endTime = new Date();
@@ -69,6 +69,7 @@ router.post('/', requireAdminAuth, async (req, res) => {
       title,
       description,
       startingPrice,
+      currency: currency || 'NGN', // Default to Naira
       media: media || [],
       seller: req.user.userId,
       endTime

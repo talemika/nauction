@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { auctionsAPI } from '../lib/api';
+import { useCurrency } from '../hooks/useCurrency';
 import { Button } from './ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -10,6 +11,7 @@ const Home = () => {
   const [auctions, setAuctions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { displayAmount } = useCurrency();
 
   useEffect(() => {
     fetchAuctions();
@@ -44,11 +46,8 @@ const Home = () => {
     return `${minutes}m`;
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
+  const formatPrice = (price, currency = 'NGN') => {
+    return displayAmount(price, currency);
   };
 
   if (loading) {
@@ -129,7 +128,7 @@ const Home = () => {
                     <div className="flex items-center space-x-1">
                       <DollarSign className="h-4 w-4 text-green-600" />
                       <span className="font-semibold text-green-600">
-                        {formatPrice(auction.currentPrice)}
+                        {formatPrice(auction.currentPrice, auction.currency)}
                       </span>
                     </div>
                     <div className="flex items-center space-x-1 text-sm text-muted-foreground">

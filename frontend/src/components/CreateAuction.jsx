@@ -16,6 +16,7 @@ const CreateAuction = () => {
     description: '',
     startingPrice: '',
     duration: '24', // hours
+    currency: 'NGN', // Default to Naira
   });
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadedMedia, setUploadedMedia] = useState([]);
@@ -186,9 +187,11 @@ const CreateAuction = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="startingPrice">Starting Price ($) *</Label>
+                <Label htmlFor="startingPrice">
+                  Starting Price ({formData.currency === 'NGN' ? '₦' : '$'}) *
+                </Label>
                 <Input
                   id="startingPrice"
                   name="startingPrice"
@@ -200,6 +203,21 @@ const CreateAuction = () => {
                   onChange={handleChange}
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="currency">Currency *</Label>
+                <select
+                  id="currency"
+                  name="currency"
+                  value={formData.currency}
+                  onChange={handleChange}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  required
+                >
+                  <option value="NGN">₦ Nigerian Naira (NGN)</option>
+                  <option value="USD">$ US Dollar (USD)</option>
+                </select>
               </div>
 
               <div className="space-y-2">

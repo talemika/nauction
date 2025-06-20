@@ -16,6 +16,11 @@ const bidSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  currency: {
+    type: String,
+    enum: ['NGN', 'USD'],
+    default: 'NGN'
+  },
   timestamp: {
     type: Date,
     default: Date.now

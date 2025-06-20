@@ -2,7 +2,8 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from './ui/button';
-import { Gavel, User, Plus, List, TrendingUp } from 'lucide-react';
+import { Gavel, User, Plus, List, TrendingUp, Shield } from 'lucide-react';
+import CurrencySelector from './CurrencySelector';
 
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
@@ -29,10 +30,16 @@ const Navbar = () => {
               Home
             </Link>
             {isAuthenticated && user?.role === 'admin' && (
-              <Link to="/create-auction" className="flex items-center space-x-1 text-foreground hover:text-primary transition-colors">
-                <Plus className="h-4 w-4" />
-                <span>Create Auction</span>
-              </Link>
+              <>
+                <Link to="/create-auction" className="flex items-center space-x-1 text-foreground hover:text-primary transition-colors">
+                  <Plus className="h-4 w-4" />
+                  <span>Create Auction</span>
+                </Link>
+                <Link to="/admin" className="flex items-center space-x-1 text-foreground hover:text-primary transition-colors">
+                  <Shield className="h-4 w-4" />
+                  <span>Admin Panel</span>
+                </Link>
+              </>
             )}
             {isAuthenticated && (
               <>
@@ -48,13 +55,19 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Auth Buttons */}
+          {/* Currency Selector and Auth Buttons */}
           <div className="flex items-center space-x-4">
+            <CurrencySelector />
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                   <User className="h-4 w-4" />
                   <span className="text-sm font-medium">{user?.username}</span>
+                  {user?.role === 'admin' && (
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                      Admin
+                    </span>
+                  )}
                 </div>
                 <Button variant="outline" onClick={handleLogout}>
                   Logout
