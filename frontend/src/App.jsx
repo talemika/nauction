@@ -11,6 +11,7 @@ import CreateAuction from './components/CreateAuction';
 import MyAuctions from './components/MyAuctions';
 import MyBids from './components/MyBids';
 import AdminPanel from './components/AdminPanel';
+import UserProfile from './components/UserProfile';
 import './App.css';
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
                 <Route path="/my-auctions" element={<MyAuctions />} />
                 <Route path="/my-bids" element={<MyBids />} />
                 <Route path="/admin" element={<AdminPanel />} />
+                <Route path="/profile" element={<UserProfile />} />
               </Routes>
             </main>
           </div>

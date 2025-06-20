@@ -1,33 +1,56 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { auctionsAPI } from '../lib/api';
+import { api } from '../lib/api';
 import { useCurrency } from '../hooks/useCurrency';
+import SearchComponent from './SearchComponent';
 import { Button } from './ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { Clock, DollarSign, User } from 'lucide-react';
+import { Clock, DollarSign, User, Tag, Package } from 'lucide-react';
 
 const Home = () => {
   const [auctions, setAuctions] = useState([]);
+  const [pagination, setPagination] = useState({ current: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isSearchMode, setIsSearchMode] = useState(false);
   const { displayAmount } = useCurrency();
 
   useEffect(() => {
-    fetchAuctions();
-  }, []);
+    if (!isSearchMode) {
+      fetchAuctions();
+    }
+  }, [isSearchMode]);
 
   const fetchAuctions = async () => {
     try {
       setLoading(true);
-      const response = await auctionsAPI.getAll();
+      const response = await api.get('/auctions');
       setAuctions(response.data);
+      setIsSearchMode(false);
     } catch (err) {
       setError('Failed to fetch auctions');
       console.error('Error fetching auctions:', err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearchResults = (results) => {
+    setAuctions(results.auctions);
+    setPagination(results.pagination);
+    setIsSearchMode(true);
+    setError(null);
+  };
+
+  const handleSearchLoading = (loading) => {
+    setSearchLoading(loading);
+  };
+
+  const loadMoreResults = async (page) => {
+    // This would be called from pagination controls
+    // Implementation depends on how SearchComponent exposes search parameters
   };
 
   const formatTimeRemaining = (endTime) => {
@@ -76,13 +99,58 @@ const Home = () => {
         </p>
       </div>
 
-      {/* Auctions Grid */}
-      {auctions.length === 0 ? (
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-semibold text-muted-foreground">No active auctions</h2>
-          <p className="text-muted-foreground mt-2">Check back later for new items!</p>
+      {/* Search Component */}
+      <SearchComponent 
+        onResults={handleSearchResults}
+        onLoading={handleSearchLoading}
+      />
+
+      {/* Results Header */}
+      {isSearchMode && (
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-semibold">Search Results</h2>
+            <p className="text-muted-foreground">
+              {pagination.total} auction{pagination.total !== 1 ? 's' : ''} found
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={fetchAuctions}
+            className="text-sm"
+          >
+            View All Auctions
+          </Button>
         </div>
-      ) : (
+      )}
+
+      {/* Loading State */}
+      {(loading || searchLoading) && (
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg">Loading auctions...</div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !loading && !searchLoading && (
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg text-destructive">{error}</div>
+        </div>
+      )}
+
+      {/* Auctions Grid */}
+      {!loading && !searchLoading && auctions.length === 0 && (
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-semibold text-muted-foreground">
+            {isSearchMode ? 'No auctions found' : 'No active auctions'}
+          </h2>
+          <p className="text-muted-foreground mt-2">
+            {isSearchMode ? 'Try adjusting your search criteria' : 'Check back later for new items!'}
+          </p>
+        </div>
+      )}
+
+      {!loading && !searchLoading && auctions.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {auctions.map((auction) => (
             <Card key={auction._id} className="hover:shadow-lg transition-shadow">
@@ -122,6 +190,38 @@ const Home = () => {
                   {auction.description}
                 </p>
 
+                {/* Category and Condition */}
+                {(auction.category || auction.condition) && (
+                  <div className="flex flex-wrap gap-2">
+                    {auction.category && (
+                      <div className="flex items-center space-x-1 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                        <Package className="h-3 w-3" />
+                        <span>{auction.category}</span>
+                      </div>
+                    )}
+                    {auction.condition && (
+                      <div className="flex items-center space-x-1 text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded-full">
+                        <span className="capitalize">{auction.condition}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Tags */}
+                {auction.tags && auction.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {auction.tags.slice(0, 3).map((tag, index) => (
+                      <div key={index} className="flex items-center space-x-1 text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                        <Tag className="h-3 w-3" />
+                        <span>{tag}</span>
+                      </div>
+                    ))}
+                    {auction.tags.length > 3 && (
+                      <span className="text-xs text-muted-foreground">+{auction.tags.length - 3} more</span>
+                    )}
+                  </div>
+                )}
+
                 {/* Price and Time */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -153,6 +253,31 @@ const Home = () => {
               </CardFooter>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {isSearchMode && pagination.pages > 1 && (
+        <div className="flex justify-center items-center space-x-2 mt-8">
+          <Button
+            variant="outline"
+            disabled={pagination.current === 1}
+            onClick={() => loadMoreResults(pagination.current - 1)}
+          >
+            Previous
+          </Button>
+          
+          <span className="text-sm text-muted-foreground">
+            Page {pagination.current} of {pagination.pages}
+          </span>
+          
+          <Button
+            variant="outline"
+            disabled={pagination.current === pagination.pages}
+            onClick={() => loadMoreResults(pagination.current + 1)}
+          >
+            Next
+          </Button>
         </div>
       )}
     </div>

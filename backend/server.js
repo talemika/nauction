@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const { createDefaultAdmin } = require('./utils/createAdmin');
 require('dotenv').config();
 
 const app = express();
@@ -18,7 +19,11 @@ mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log('MongoDB connected successfully'))
+.then(async () => {
+  console.log('MongoDB connected successfully');
+  // Create default admin user after database connection
+  await createDefaultAdmin();
+})
 .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
@@ -27,6 +32,8 @@ app.use('/api/auctions', require('./routes/auctions'));
 app.use('/api/bids', require('./routes/bids'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/currency', require('./routes/currency'));
+app.use('/api/search', require('./routes/search'));
+app.use('/api/users', require('./routes/users'));
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

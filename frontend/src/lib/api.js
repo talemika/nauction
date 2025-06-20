@@ -53,5 +53,7 @@ export const currencyAPI = {
     api.post('/currency/format', { amount, currency }),
 };
 
+// Export the main api instance
+export { api };
 export default api;
 

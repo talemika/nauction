@@ -59,20 +59,47 @@ router.get('/:id', async (req, res) => {
 // Create new auction (requires admin authentication)
 router.post('/', requireAdminAuth, async (req, res) => {
   try {
-    const { title, description, startingPrice, media, duration, currency } = req.body;
+    const { 
+      title, 
+      description, 
+      startingPrice, 
+      media, 
+      currency,
+      category,
+      condition,
+      tags,
+      startTime,
+      endTime,
+      duration
+    } = req.body;
 
-    // Calculate end time (duration in hours)
-    const endTime = new Date();
-    endTime.setHours(endTime.getHours() + (duration || 24));
+    // Calculate end time
+    let auctionEndTime;
+    if (endTime) {
+      auctionEndTime = new Date(endTime);
+    } else if (startTime && duration) {
+      auctionEndTime = new Date(startTime);
+      auctionEndTime.setHours(auctionEndTime.getHours() + duration);
+    } else {
+      // Default: start now, end in 24 hours
+      auctionEndTime = new Date();
+      auctionEndTime.setHours(auctionEndTime.getHours() + (duration || 24));
+    }
+
+    const auctionStartTime = startTime ? new Date(startTime) : new Date();
 
     const auction = new Auction({
       title,
       description,
       startingPrice,
-      currency: currency || 'NGN', // Default to Naira
+      currency: currency || 'NGN',
       media: media || [],
+      category,
+      condition: condition || 'good',
+      tags: tags || [],
       seller: req.user.userId,
-      endTime
+      startTime: auctionStartTime,
+      endTime: auctionEndTime
     });
 
     await auction.save();
@@ -84,7 +111,7 @@ router.post('/', requireAdminAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating auction:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 

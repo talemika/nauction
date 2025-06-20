@@ -62,7 +62,9 @@ const Navbar = () => {
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                   <User className="h-4 w-4" />
-                  <span className="text-sm font-medium">{user?.username}</span>
+                  <Link to="/profile" className="text-sm font-medium hover:text-primary transition-colors">
+                    {user?.username}
+                  </Link>
                   {user?.role === 'admin' && (
                     <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                       Admin

@@ -15,8 +15,13 @@ const CreateAuction = () => {
     title: '',
     description: '',
     startingPrice: '',
-    duration: '24', // hours
     currency: 'NGN', // Default to Naira
+    category: '',
+    condition: 'good',
+    tags: '',
+    startTime: '',
+    endTime: '',
+    duration: '24', // hours (fallback if no specific end time)
   });
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadedMedia, setUploadedMedia] = useState([]);
@@ -97,8 +102,25 @@ const CreateAuction = () => {
         return;
       }
 
-      if (parseInt(formData.duration) <= 0) {
-        setError('Duration must be greater than 0 hours');
+      // Validate dates
+      const now = new Date();
+      const startTime = formData.startTime ? new Date(formData.startTime) : now;
+      const endTime = formData.endTime ? new Date(formData.endTime) : null;
+
+      if (formData.startTime && startTime < now) {
+        setError('Start time cannot be in the past');
+        setLoading(false);
+        return;
+      }
+
+      if (endTime && endTime <= startTime) {
+        setError('End time must be after start time');
+        setLoading(false);
+        return;
+      }
+
+      if (!endTime && (!formData.duration || parseInt(formData.duration) <= 0)) {
+        setError('Please specify either an end time or duration');
         setLoading(false);
         return;
       }
@@ -114,9 +136,16 @@ const CreateAuction = () => {
       }
 
       const auctionData = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
         startingPrice: parseFloat(formData.startingPrice),
-        duration: parseInt(formData.duration),
+        currency: formData.currency,
+        category: formData.category,
+        condition: formData.condition,
+        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        startTime: formData.startTime || undefined,
+        endTime: formData.endTime || undefined,
+        duration: formData.endTime ? undefined : parseInt(formData.duration),
         media: mediaData,
       };
 
@@ -237,6 +266,113 @@ const CreateAuction = () => {
                   Maximum 168 hours (1 week)
                 </p>
               </div>
+            </div>
+
+            {/* Category and Condition */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Input
+                  id="category"
+                  name="category"
+                  type="text"
+                  placeholder="e.g., Electronics, Clothing, Art"
+                  value={formData.category}
+                  onChange={handleChange}
+                  maxLength={50}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="condition">Condition *</Label>
+                <select
+                  id="condition"
+                  name="condition"
+                  value={formData.condition}
+                  onChange={handleChange}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  required
+                >
+                  <option value="new">New</option>
+                  <option value="like-new">Like New</option>
+                  <option value="good">Good</option>
+                  <option value="fair">Fair</option>
+                  <option value="poor">Poor</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Tags */}
+            <div className="space-y-2">
+              <Label htmlFor="tags">Tags (optional)</Label>
+              <Input
+                id="tags"
+                name="tags"
+                type="text"
+                placeholder="Enter tags separated by commas (e.g., vintage, rare, collectible)"
+                value={formData.tags}
+                onChange={handleChange}
+              />
+              <p className="text-sm text-muted-foreground">
+                Separate multiple tags with commas to help users find your auction
+              </p>
+            </div>
+
+            {/* Auction Scheduling */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Auction Scheduling</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startTime">Start Time (optional)</Label>
+                  <Input
+                    id="startTime"
+                    name="startTime"
+                    type="datetime-local"
+                    value={formData.startTime}
+                    onChange={handleChange}
+                    min={new Date().toISOString().slice(0, 16)}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Leave empty to start immediately
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="endTime">End Time (optional)</Label>
+                  <Input
+                    id="endTime"
+                    name="endTime"
+                    type="datetime-local"
+                    value={formData.endTime}
+                    onChange={handleChange}
+                    min={formData.startTime || new Date().toISOString().slice(0, 16)}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Leave empty to use duration instead
+                  </p>
+                </div>
+              </div>
+
+              {!formData.endTime && (
+                <div className="space-y-2">
+                  <Label htmlFor="duration">Duration (hours) *</Label>
+                  <Input
+                    id="duration"
+                    name="duration"
+                    type="number"
+                    min="1"
+                    max="168" // 1 week
+                    placeholder="24"
+                    value={formData.duration}
+                    onChange={handleChange}
+                    required={!formData.endTime}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Maximum 168 hours (1 week). Only used if no end time is specified.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

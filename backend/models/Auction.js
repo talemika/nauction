@@ -61,6 +61,21 @@ const auctionSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
+  category: {
+    type: String,
+    trim: true,
+    maxlength: 50
+  },
+  condition: {
+    type: String,
+    enum: ['new', 'like-new', 'good', 'fair', 'poor'],
+    default: 'good'
+  },
+  tags: [{
+    type: String,
+    trim: true,
+    maxlength: 30
+  }],
   status: {
     type: String,
     enum: ['active', 'ended', 'cancelled'],
