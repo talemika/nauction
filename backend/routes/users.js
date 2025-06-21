@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth');
-const adminAuth = require('../middleware/adminAuth');
+const { requireAdminAuth } = require('../middleware/adminAuth');
 
 // Get current user profile
 router.get('/profile', auth, async (req, res) => {
@@ -66,7 +66,7 @@ router.get('/balance', auth, async (req, res) => {
 });
 
 // Admin: Search users
-router.get('/admin/search', [auth, adminAuth], async (req, res) => {
+router.get('/admin/search', requireAdminAuth, async (req, res) => {
   try {
     const { 
       q, 
@@ -128,7 +128,7 @@ router.get('/admin/search', [auth, adminAuth], async (req, res) => {
 });
 
 // Admin: Update user balance
-router.put('/admin/balance/:userId', [auth, adminAuth], async (req, res) => {
+router.put('/admin/balance/:userId', requireAdminAuth, async (req, res) => {
   try {
     const { userId } = req.params;
     const { balance, action = 'set' } = req.body; // action can be 'set', 'add', or 'subtract'
@@ -175,7 +175,7 @@ router.put('/admin/balance/:userId', [auth, adminAuth], async (req, res) => {
 });
 
 // Admin: Update user role
-router.put('/admin/role/:userId', [auth, adminAuth], async (req, res) => {
+router.put('/admin/role/:userId', requireAdminAuth, async (req, res) => {
   try {
     const { userId } = req.params;
     const { role } = req.body;

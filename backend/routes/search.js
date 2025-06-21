@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Auction = require('../models/Auction');
-const auth = require('../middleware/auth');
 
-// Search auctions
+// Search auctions (public endpoint - no auth required)
 router.get('/search', async (req, res) => {
   try {
     const { 
