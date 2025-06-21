@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const auth = require('../middleware/auth');
 const { requireAdminAuth } = require('../middleware/adminAuth');
 
 const router = express.Router();
@@ -10,23 +11,28 @@ const router = express.Router();
 const uploadsDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('Created uploads directory:', uploadsDir);
 }
 
 // Configure multer for file storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    console.log('Upload destination:', uploadsDir);
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     // Generate unique filename with timestamp
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    const filename = file.fieldname + '-' + uniqueSuffix + ext;
+    console.log('Generated filename:', filename);
+    cb(null, filename);
   }
 });
 
 // File filter to allow only images and videos
 const fileFilter = (req, file, cb) => {
+  console.log('File filter check:', file.mimetype);
   const allowedMimes = [
     'image/jpeg',
     'image/jpg', 
@@ -56,14 +62,29 @@ const upload = multer({
   }
 });
 
+// Test endpoint to check if upload is working
+router.get('/test', (req, res) => {
+  res.json({ 
+    message: 'Upload endpoint is working',
+    uploadsDir: uploadsDir,
+    dirExists: fs.existsSync(uploadsDir)
+  });
+});
+
 // Upload single file endpoint (admin only)
-router.post('/single', requireAdminAuth, upload.single('file'), (req, res) => {
+router.post('/single', auth, upload.single('file'), (req, res) => {
   try {
+    console.log('Upload request received');
+    console.log('User:', req.user);
+    console.log('File:', req.file);
+    
     if (!req.file) {
+      console.log('No file in request');
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
     const fileUrl = `/uploads/${req.file.filename}`;
+    console.log('File uploaded successfully:', fileUrl);
     
     res.json({
       message: 'File uploaded successfully',
@@ -77,13 +98,16 @@ router.post('/single', requireAdminAuth, upload.single('file'), (req, res) => {
     });
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(500).json({ message: 'Server error during file upload' });
+    res.status(500).json({ message: 'Server error during file upload', error: error.message });
   }
 });
 
 // Upload multiple files endpoint (admin only)
-router.post('/multiple', requireAdminAuth, upload.array('files', 5), (req, res) => {
+router.post('/multiple', auth, upload.array('files', 5), (req, res) => {
   try {
+    console.log('Multiple upload request received');
+    console.log('Files:', req.files);
+    
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'No files uploaded' });
     }
@@ -102,12 +126,14 @@ router.post('/multiple', requireAdminAuth, upload.array('files', 5), (req, res) 
     });
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(500).json({ message: 'Server error during file upload' });
+    res.status(500).json({ message: 'Server error during file upload', error: error.message });
   }
 });
 
 // Error handling middleware for multer
 router.use((error, req, res, next) => {
+  console.error('Multer error:', error);
+  
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({ message: 'File too large. Maximum size is 50MB.' });
@@ -121,7 +147,7 @@ router.use((error, req, res, next) => {
     return res.status(400).json({ message: error.message });
   }
 
-  res.status(500).json({ message: 'Server error during file upload' });
+  res.status(500).json({ message: 'Server error during file upload', error: error.message });
 });
 
 module.exports = router;
