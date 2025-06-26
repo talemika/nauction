@@ -180,7 +180,7 @@ const UserManagement = () => {
     
     const amount = parseFloat(balanceForm.amount);
     if (!amount || amount <= 0) {
-      setErrors({ balance: 'Please enter a valid amount' });
+      setErrors({ balance: 'Please enter a valid positive amount' });
       return;
     }
 
@@ -582,8 +582,8 @@ const UserManagement = () => {
                 <Input
                   id="amount"
                   type="number"
-                  min="1"
-                  step="100"
+                  min="0.01"
+                  step="0.01"
                   value={balanceForm.amount}
                   onChange={(e) => setBalanceForm(prev => ({ ...prev, amount: e.target.value }))}
                   placeholder="Enter amount"

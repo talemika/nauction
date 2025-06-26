@@ -57,6 +57,18 @@ const AuctionManagement = () => {
   
   const [selectedAuction, setSelectedAuction] = useState(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  
+  const [createForm, setCreateForm] = useState({
+    title: '',
+    description: '',
+    category: '',
+    startingPrice: '',
+    buyItNowPrice: '',
+    bidIncrement: '',
+    endTime: '',
+    images: []
+  });
   
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState('');
@@ -134,6 +146,63 @@ const AuctionManagement = () => {
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       setErrors({ delete: error.response?.data?.message || 'Failed to delete auction' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCreateAuction = () => {
+    setShowCreateDialog(true);
+    setErrors({});
+    setCreateForm({
+      title: '',
+      description: '',
+      category: '',
+      startingPrice: '',
+      buyItNowPrice: '',
+      bidIncrement: '',
+      endTime: '',
+      images: []
+    });
+  };
+
+  const handleCreateFormChange = (field, value) => {
+    setCreateForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const submitCreateAuction = async (e) => {
+    e.preventDefault();
+    
+    try {
+      setIsSubmitting(true);
+      setErrors({});
+
+      // Validate required fields
+      if (!createForm.title || !createForm.description || !createForm.category || 
+          !createForm.startingPrice || !createForm.endTime) {
+        setErrors({ create: 'Please fill in all required fields' });
+        return;
+      }
+
+      const auctionData = {
+        title: createForm.title,
+        description: createForm.description,
+        category: createForm.category,
+        startingPrice: parseFloat(createForm.startingPrice),
+        buyItNowPrice: createForm.buyItNowPrice ? parseFloat(createForm.buyItNowPrice) : null,
+        bidIncrement: createForm.bidIncrement ? parseFloat(createForm.bidIncrement) : 100,
+        endTime: new Date(createForm.endTime).toISOString()
+      };
+
+      await auctionsAPI.createAuction(auctionData);
+
+      setSuccess('Auction created successfully');
+      setShowCreateDialog(false);
+      await fetchAuctions();
+      
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      setErrors({ create: error.response?.data?.message || 'Failed to create auction' });
     } finally {
       setIsSubmitting(false);
     }
@@ -227,7 +296,7 @@ const AuctionManagement = () => {
             Create, edit, and manage all auctions
           </p>
         </div>
-        <Button>
+        <Button onClick={handleCreateAuction}>
           <Plus className="h-4 w-4 mr-2" />
           Create Auction
         </Button>
@@ -497,6 +566,148 @@ const AuctionManagement = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Auction Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create New Auction</DialogTitle>
+            <DialogDescription>
+              Fill in the details to create a new auction
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={submitCreateAuction} className="space-y-4">
+            {errors.create && (
+              <Alert variant="destructive">
+                <AlertDescription>{errors.create}</AlertDescription>
+              </Alert>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Title *</Label>
+                <Input
+                  id="title"
+                  value={createForm.title}
+                  onChange={(e) => handleCreateFormChange('title', e.target.value)}
+                  placeholder="Enter auction title"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category">Category *</Label>
+                <Select 
+                  value={createForm.category} 
+                  onValueChange={(value) => handleCreateFormChange('category', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="electronics">Electronics</SelectItem>
+                    <SelectItem value="fashion">Fashion</SelectItem>
+                    <SelectItem value="home">Home & Garden</SelectItem>
+                    <SelectItem value="sports">Sports</SelectItem>
+                    <SelectItem value="books">Books</SelectItem>
+                    <SelectItem value="art">Art & Collectibles</SelectItem>
+                    <SelectItem value="automotive">Automotive</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="startingPrice">Starting Price (₦) *</Label>
+                <Input
+                  id="startingPrice"
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  value={createForm.startingPrice}
+                  onChange={(e) => handleCreateFormChange('startingPrice', e.target.value)}
+                  placeholder="Enter starting price"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="buyItNowPrice">Buy It Now Price (₦)</Label>
+                <Input
+                  id="buyItNowPrice"
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  value={createForm.buyItNowPrice}
+                  onChange={(e) => handleCreateFormChange('buyItNowPrice', e.target.value)}
+                  placeholder="Optional buy it now price"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bidIncrement">Bid Increment (₦)</Label>
+                <Input
+                  id="bidIncrement"
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  value={createForm.bidIncrement}
+                  onChange={(e) => handleCreateFormChange('bidIncrement', e.target.value)}
+                  placeholder="Default: 100"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="endTime">End Time *</Label>
+                <Input
+                  id="endTime"
+                  type="datetime-local"
+                  value={createForm.endTime}
+                  onChange={(e) => handleCreateFormChange('endTime', e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description *</Label>
+              <textarea
+                id="description"
+                className="w-full min-h-[100px] p-3 border border-input rounded-md resize-none"
+                value={createForm.description}
+                onChange={(e) => handleCreateFormChange('description', e.target.value)}
+                placeholder="Enter detailed description of the item"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Auction'
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowCreateDialog(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
