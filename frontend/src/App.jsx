@@ -11,6 +11,7 @@ import Profile from './pages/Profile';
 import Auctions from './pages/Auctions';
 import AuctionDetail from './pages/AuctionDetail';
 import AdminDashboard from './pages/AdminDashboard';
+import CreateAuction from './pages/CreateAuction';
 import BiddingInfo from './pages/BiddingInfo';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
@@ -55,6 +56,13 @@ function App() {
                   <Route path="/admin/*" element={
                     <AdminRoute>
                       <AdminDashboard />
+                    </AdminRoute>
+                  } />
+                  
+                  {/* Admin Create Auction route */}
+                  <Route path="/admin/auctions/create" element={
+                    <AdminRoute>
+                      <CreateAuction />
                     </AdminRoute>
                   } />
                 </Routes>
