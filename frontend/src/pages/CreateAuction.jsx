@@ -55,16 +55,15 @@ const CreateAuction = () => {
 
   const categories = [
     'Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books', 
-    'Art & Collectibles', 'Automotive', 'Jewelry', 'Music', 'Other'
+    'Art', 'Collectibles', 'Automotive', 'Other'
   ];
 
   const conditions = [
     'New',
     'Like New', 
-    'Very Good/Slightly Used',
     'Good',
-    'Poor',
-    'Needs Repair/Revamp'
+    'Fair',
+    'Poor'
   ];
 
   const handleFormChange = (field, value) => {
@@ -230,8 +229,8 @@ const CreateAuction = () => {
         startingPrice: parseFloat(createForm.startingPrice),
         buyItNowPrice: createForm.buyItNowPrice ? parseFloat(createForm.buyItNowPrice) : null,
         bidIncrement: createForm.bidIncrement ? parseFloat(createForm.bidIncrement) : 100,
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
+        startDate: startTime.toISOString(),
+        endDate: endTime.toISOString(),
         images: createForm.images,
         videos: createForm.videos
       };
