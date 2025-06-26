@@ -63,9 +63,14 @@ const AuctionManagement = () => {
     title: '',
     description: '',
     category: '',
+    condition: '',
+    estimatedRetailValue: '',
+    auctionType: 'pure_sale', // 'pure_sale' or 'reserve_price'
+    reservePrice: '',
     startingPrice: '',
     buyItNowPrice: '',
     bidIncrement: '',
+    startTime: '',
     endTime: '',
     images: []
   });
@@ -158,9 +163,14 @@ const AuctionManagement = () => {
       title: '',
       description: '',
       category: '',
+      condition: '',
+      estimatedRetailValue: '',
+      auctionType: 'pure_sale',
+      reservePrice: '',
       startingPrice: '',
       buyItNowPrice: '',
       bidIncrement: '',
+      startTime: '',
       endTime: '',
       images: []
     });
@@ -179,8 +189,29 @@ const AuctionManagement = () => {
 
       // Validate required fields
       if (!createForm.title || !createForm.description || !createForm.category || 
-          !createForm.startingPrice || !createForm.endTime) {
+          !createForm.condition || !createForm.startingPrice || !createForm.startTime || !createForm.endTime) {
         setErrors({ create: 'Please fill in all required fields' });
+        return;
+      }
+
+      // Validate start and end times
+      const startTime = new Date(createForm.startTime);
+      const endTime = new Date(createForm.endTime);
+      const now = new Date();
+
+      if (startTime < now) {
+        setErrors({ create: 'Start time must be in the future' });
+        return;
+      }
+
+      if (endTime <= startTime) {
+        setErrors({ create: 'End time must be after start time' });
+        return;
+      }
+
+      // Validate reserve price if auction type is reserve_price
+      if (createForm.auctionType === 'reserve_price' && !createForm.reservePrice) {
+        setErrors({ create: 'Reserve price is required for reserve price auctions' });
         return;
       }
 
@@ -188,10 +219,15 @@ const AuctionManagement = () => {
         title: createForm.title,
         description: createForm.description,
         category: createForm.category,
+        condition: createForm.condition,
+        estimatedRetailValue: createForm.estimatedRetailValue ? parseFloat(createForm.estimatedRetailValue) : null,
+        auctionType: createForm.auctionType,
+        reservePrice: createForm.auctionType === 'reserve_price' ? parseFloat(createForm.reservePrice) : null,
         startingPrice: parseFloat(createForm.startingPrice),
         buyItNowPrice: createForm.buyItNowPrice ? parseFloat(createForm.buyItNowPrice) : null,
         bidIncrement: createForm.bidIncrement ? parseFloat(createForm.bidIncrement) : 100,
-        endTime: new Date(createForm.endTime).toISOString()
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString()
       };
 
       await auctionsAPI.createAuction(auctionData);
@@ -621,6 +657,75 @@ const AuctionManagement = () => {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="condition">Item Condition *</Label>
+                <Select 
+                  value={createForm.condition} 
+                  onValueChange={(value) => handleCreateFormChange('condition', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select condition" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="like_new">Like New</SelectItem>
+                    <SelectItem value="very_good">Very Good/Slightly Used</SelectItem>
+                    <SelectItem value="good">Good</SelectItem>
+                    <SelectItem value="poor">Poor</SelectItem>
+                    <SelectItem value="needs_repair">Needs Repair/Revamp</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="estimatedRetailValue">Estimated Retail Value (₦)</Label>
+                <Input
+                  id="estimatedRetailValue"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={createForm.estimatedRetailValue}
+                  onChange={(e) => handleCreateFormChange('estimatedRetailValue', e.target.value)}
+                  placeholder="Enter estimated retail value"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="auctionType">Auction Type *</Label>
+                <Select 
+                  value={createForm.auctionType} 
+                  onValueChange={(value) => handleCreateFormChange('auctionType', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pure_sale">Pure Sale (Sells at any final bid)</SelectItem>
+                    <SelectItem value="reserve_price">Reserve Price (Must meet minimum)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {createForm.auctionType === 'reserve_price' && (
+                <div className="space-y-2">
+                  <Label htmlFor="reservePrice">Reserve Price (₦) *</Label>
+                  <Input
+                    id="reservePrice"
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={createForm.reservePrice}
+                    onChange={(e) => handleCreateFormChange('reservePrice', e.target.value)}
+                    placeholder="Enter minimum reserve price"
+                    disabled={isSubmitting}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Item will only sell if final bid meets or exceeds this amount
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-2">
                 <Label htmlFor="startingPrice">Starting Price (₦) *</Label>
                 <Input
                   id="startingPrice"
@@ -663,15 +768,33 @@ const AuctionManagement = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="endTime">End Time *</Label>
+                <Label htmlFor="startTime">Auction Start Date & Time *</Label>
+                <Input
+                  id="startTime"
+                  type="datetime-local"
+                  value={createForm.startTime}
+                  onChange={(e) => handleCreateFormChange('startTime', e.target.value)}
+                  min={new Date(Date.now() + 60000).toISOString().slice(0, 16)} // At least 1 minute from now
+                  disabled={isSubmitting}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Select when the auction should start accepting bids
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="endTime">Auction End Date & Time *</Label>
                 <Input
                   id="endTime"
                   type="datetime-local"
                   value={createForm.endTime}
                   onChange={(e) => handleCreateFormChange('endTime', e.target.value)}
-                  min={new Date().toISOString().slice(0, 16)}
+                  min={createForm.startTime || new Date(Date.now() + 60000).toISOString().slice(0, 16)}
                   disabled={isSubmitting}
                 />
+                <p className="text-sm text-muted-foreground">
+                  Select when the auction should end (must be after start time)
+                </p>
               </div>
             </div>
 
