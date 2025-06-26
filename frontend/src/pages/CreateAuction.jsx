@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -102,16 +102,22 @@ const CreateAuction = () => {
         }
 
         const formData = new FormData();
-        formData.append('file', file);
-        formData.append('type', type === 'images' ? 'image' : 'video');
+        formData.append(type === 'images' ? 'images' : 'videos', file);
 
-        const response = await uploadAPI.uploadFile(formData);
+        let response;
+        if (type === 'images') {
+          response = await uploadAPI.uploadImages(formData);
+        } else {
+          response = await uploadAPI.uploadVideos(formData);
+        }
         
         // Update progress
         const progress = ((index + 1) / files.length) * 100;
         setUploadProgress(progress);
         
-        return response.data.fileName;
+        // Extract file name from response
+        const uploadedFiles = response.data.files || [];
+        return uploadedFiles[0] || response.data.fileName || file.name;
       });
 
       const uploadedFileNames = await Promise.all(uploadPromises);
