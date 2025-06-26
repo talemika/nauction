@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useCurrency } from '../../contexts/CurrencyContext';
-import { auctionsAPI } from '../../services/api';
+import { auctionsAPI, uploadAPI } from '../../services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,7 +40,10 @@ import {
   Timer,
   CheckCircle,
   XCircle,
-  AlertTriangle
+  AlertTriangle,
+  Upload,
+  Video,
+  X
 } from 'lucide-react';
 
 const AuctionManagement = () => {
@@ -72,8 +75,17 @@ const AuctionManagement = () => {
     bidIncrement: '',
     startTime: '',
     endTime: '',
-    images: []
+    images: [],
+    videos: []
   });
+
+  // File upload state
+  const [uploadedFiles, setUploadedFiles] = useState({
+    images: [],
+    videos: []
+  });
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState('');
@@ -172,12 +184,76 @@ const AuctionManagement = () => {
       bidIncrement: '',
       startTime: '',
       endTime: '',
-      images: []
+      images: [],
+      videos: []
     });
+    setUploadedFiles({
+      images: [],
+      videos: []
+    });
+    setUploadProgress(0);
   };
 
   const handleCreateFormChange = (field, value) => {
     setCreateForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  // File upload functions
+  const handleFileUpload = async (files, type) => {
+    if (!files || files.length === 0) return;
+
+    try {
+      setIsUploading(true);
+      setErrors({});
+      
+      const formData = new FormData();
+      Array.from(files).forEach(file => {
+        formData.append(type, file);
+      });
+
+      let response;
+      if (type === 'images') {
+        response = await uploadAPI.uploadImages(formData);
+      } else if (type === 'videos') {
+        response = await uploadAPI.uploadVideos(formData);
+      }
+
+      const uploadedFileNames = response.data.files || [];
+      
+      // Update uploaded files state
+      setUploadedFiles(prev => ({
+        ...prev,
+        [type]: [...prev[type], ...uploadedFileNames]
+      }));
+
+      // Update form state
+      setCreateForm(prev => ({
+        ...prev,
+        [type]: [...prev[type], ...uploadedFileNames]
+      }));
+
+    } catch (error) {
+      setErrors({ upload: `Failed to upload ${type}: ${error.response?.data?.message || error.message}` });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeFile = (fileName, type) => {
+    setUploadedFiles(prev => ({
+      ...prev,
+      [type]: prev[type].filter(file => file !== fileName)
+    }));
+
+    setCreateForm(prev => ({
+      ...prev,
+      [type]: prev[type].filter(file => file !== fileName)
+    }));
+  };
+
+  const getFilePreviewUrl = (fileName, type) => {
+    // Assuming the backend serves files from /uploads/images/ or /uploads/videos/
+    return `${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/uploads/${type}/${fileName}`;
   };
 
   const submitCreateAuction = async (e) => {
@@ -227,7 +303,9 @@ const AuctionManagement = () => {
         buyItNowPrice: createForm.buyItNowPrice ? parseFloat(createForm.buyItNowPrice) : null,
         bidIncrement: createForm.bidIncrement ? parseFloat(createForm.bidIncrement) : 100,
         startTime: startTime.toISOString(),
-        endTime: endTime.toISOString()
+        endTime: endTime.toISOString(),
+        images: createForm.images,
+        videos: createForm.videos
       };
 
       await auctionsAPI.createAuction(auctionData);
@@ -808,6 +886,132 @@ const AuctionManagement = () => {
                 placeholder="Enter detailed description of the item"
                 disabled={isSubmitting}
               />
+            </div>
+
+            {/* File Upload Section */}
+            <div className="space-y-4">
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-medium mb-4">Media Upload</h3>
+                
+                {/* Upload Errors */}
+                {errors.upload && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertDescription>{errors.upload}</AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Image Upload */}
+                <div className="space-y-3">
+                  <Label>Images</Label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                    <div className="text-center">
+                      <input
+                        type="file"
+                        id="image-upload"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e.target.files, 'images')}
+                        className="hidden"
+                        disabled={isUploading || isSubmitting}
+                      />
+                      <label
+                        htmlFor="image-upload"
+                        className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {isUploading ? 'Uploading...' : 'Upload Images'}
+                      </label>
+                      <p className="mt-2 text-sm text-gray-500">
+                        PNG, JPG, GIF up to 10MB each. Multiple files allowed.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Image Previews */}
+                  {uploadedFiles.images.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {uploadedFiles.images.map((fileName, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={getFilePreviewUrl(fileName, 'images')}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeFile(fileName, 'images')}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            disabled={isSubmitting}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Video Upload */}
+                <div className="space-y-3">
+                  <Label>Videos</Label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                    <div className="text-center">
+                      <input
+                        type="file"
+                        id="video-upload"
+                        multiple
+                        accept="video/*"
+                        onChange={(e) => handleFileUpload(e.target.files, 'videos')}
+                        className="hidden"
+                        disabled={isUploading || isSubmitting}
+                      />
+                      <label
+                        htmlFor="video-upload"
+                        className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <Video className="h-4 w-4 mr-2" />
+                        {isUploading ? 'Uploading...' : 'Upload Videos'}
+                      </label>
+                      <p className="mt-2 text-sm text-gray-500">
+                        MP4, MOV, AVI up to 50MB each. Multiple files allowed.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Video Previews */}
+                  {uploadedFiles.videos.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {uploadedFiles.videos.map((fileName, index) => (
+                        <div key={index} className="relative group">
+                          <video
+                            src={getFilePreviewUrl(fileName, 'videos')}
+                            className="w-full h-32 object-cover rounded-lg border"
+                            controls
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeFile(fileName, 'videos')}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            disabled={isSubmitting}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload Progress */}
+                {isUploading && (
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2">
