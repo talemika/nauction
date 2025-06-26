@@ -497,7 +497,6 @@ const AuctionManagement = () => {
               </Button>
             </div>
           </div>
-             </div>
         </DialogContent>
       </Dialog>
     </div>
