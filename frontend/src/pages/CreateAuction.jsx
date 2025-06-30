@@ -223,16 +223,12 @@ const CreateAuction = () => {
         description: createForm.description,
         category: createForm.category,
         condition: createForm.condition,
-        estimatedRetailValue: createForm.estimatedRetailValue ? parseFloat(createForm.estimatedRetailValue) : null,
-        auctionType: createForm.auctionType,
-        reservePrice: createForm.auctionType === 'reserve_price' ? parseFloat(createForm.reservePrice) : null,
         startingPrice: parseFloat(createForm.startingPrice),
+        reservePrice: createForm.auctionType === 'reserve_price' ? parseFloat(createForm.reservePrice) : null,
         buyItNowPrice: createForm.buyItNowPrice ? parseFloat(createForm.buyItNowPrice) : null,
         bidIncrement: createForm.bidIncrement ? parseFloat(createForm.bidIncrement) : 100,
         startDate: startTime.toISOString(),
-        endDate: endTime.toISOString(),
-        images: createForm.images,
-        videos: createForm.videos
+        endDate: endTime.toISOString()
       };
 
       const response = await auctionsAPI.createAuction(auctionData);
@@ -241,7 +237,7 @@ const CreateAuction = () => {
       
       // Redirect to the newly created auction after a short delay
       setTimeout(() => {
-        navigate(`/auctions/${response.data.id}`);
+        navigate(`/auctions/${response.data.auction._id}`);
       }, 2000);
 
     } catch (error) {
